@@ -1,0 +1,160 @@
+<html>
+<head>
+<title>OnTestClickListener.java</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #000080; font-weight: bold;}
+.s1 { color: #000000;}
+.s2 { color: #0000ff;}
+.s3 { color: #008000; font-weight: bold;}
+</style>
+</head>
+<body bgcolor="#ffffff">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#c0c0c0" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+OnTestClickListener.java</font>
+</center></td></tr></table>
+<pre><span class="s0">package </span>edu.buffalo.cse.cse486586.simpledht;
+
+<span class="s0">import </span>android.content.ContentResolver;
+<span class="s0">import </span>android.content.ContentValues;
+<span class="s0">import </span>android.database.Cursor;
+<span class="s0">import </span>android.net.Uri;
+<span class="s0">import </span>android.os.AsyncTask;
+<span class="s0">import </span>android.util.Log;
+<span class="s0">import </span>android.view.View;
+<span class="s0">import </span>android.view.View.OnClickListener;
+<span class="s0">import </span>android.widget.TextView;
+
+<span class="s0">public class </span>OnTestClickListener <span class="s0">implements </span>OnClickListener {
+
+	<span class="s0">private static final </span>String TAG = OnTestClickListener.<span class="s0">class</span>.getName();
+	<span class="s0">private static final int </span>TEST_CNT = <span class="s2">50</span>;
+	<span class="s0">private static final </span>String KEY_FIELD = <span class="s3">&quot;key&quot;</span>;
+	<span class="s0">private static final </span>String VALUE_FIELD = <span class="s3">&quot;value&quot;</span>;
+
+	<span class="s0">private final </span>TextView mTextView;
+	<span class="s0">private final </span>ContentResolver mContentResolver;
+	<span class="s0">private final </span>Uri mUri;
+	<span class="s0">private final </span>ContentValues[] mContentValues;
+
+	<span class="s0">public </span>OnTestClickListener(TextView _tv, ContentResolver _cr) {
+		mTextView = _tv;
+		mContentResolver = _cr;
+		mUri = buildUri(<span class="s3">&quot;content&quot;</span>, <span class="s3">&quot;edu.buffalo.cse.cse486586.simpledht.provider&quot;</span>);
+		mContentValues = initTestValues();
+	}
+
+	<span class="s0">private </span>Uri buildUri(String scheme, String authority) {
+		Uri.Builder uriBuilder = <span class="s0">new </span>Uri.Builder();
+		uriBuilder.authority(authority);
+		uriBuilder.scheme(scheme);
+		<span class="s0">return </span>uriBuilder.build();
+	}
+
+	<span class="s0">private </span>ContentValues[] initTestValues() {
+		ContentValues[] cv = <span class="s0">new </span>ContentValues[TEST_CNT];
+		<span class="s0">for </span>(<span class="s0">int </span>i = <span class="s2">0</span>; i &lt; TEST_CNT; i++) {
+			cv[i] = <span class="s0">new </span>ContentValues();
+			cv[i].put(KEY_FIELD, <span class="s3">&quot;key&quot; </span>+ Integer.toString(i));
+			cv[i].put(VALUE_FIELD, <span class="s3">&quot;val&quot; </span>+ Integer.toString(i));
+		}
+
+		<span class="s0">return </span>cv;
+	}
+
+	@Override
+	<span class="s0">public void </span>onClick(View v) {
+		<span class="s0">new </span>Task().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+	}
+
+	<span class="s0">private class </span>Task <span class="s0">extends </span>AsyncTask&lt;Void, String, Void&gt; {
+
+		@Override
+		<span class="s0">protected </span>Void doInBackground(Void... params) {
+			<span class="s0">if </span>(testInsert()) {
+				publishProgress(<span class="s3">&quot;Insert success</span><span class="s0">\n</span><span class="s3">&quot;</span>);
+			} <span class="s0">else </span>{
+				publishProgress(<span class="s3">&quot;Insert fail</span><span class="s0">\n</span><span class="s3">&quot;</span>);
+				<span class="s0">return null</span>;
+			}
+
+			<span class="s0">if </span>(testQuery()) {
+				publishProgress(<span class="s3">&quot;Query success</span><span class="s0">\n</span><span class="s3">&quot;</span>);
+			} <span class="s0">else </span>{
+				publishProgress(<span class="s3">&quot;Query fail</span><span class="s0">\n</span><span class="s3">&quot;</span>);
+			}
+			
+			<span class="s0">return null</span>;
+		}
+		
+		<span class="s0">protected void </span>onProgressUpdate(String...strings) {
+			mTextView.append(strings[<span class="s2">0</span>]);
+
+			<span class="s0">return</span>;
+		}
+
+		<span class="s0">private boolean </span>testInsert() {
+			<span class="s0">try </span>{
+				<span class="s0">for </span>(<span class="s0">int </span>i = <span class="s2">0</span>; i &lt; TEST_CNT; i++) {
+					mContentResolver.insert(mUri, mContentValues[i]);
+				}
+			} <span class="s0">catch </span>(Exception e) {
+				Log.e(TAG, e.toString());
+				<span class="s0">return false</span>;
+			}
+
+			<span class="s0">return true</span>;
+		}
+
+		<span class="s0">private boolean </span>testQuery() {
+			<span class="s0">try </span>{
+				<span class="s0">for </span>(<span class="s0">int </span>i = <span class="s2">0</span>; i &lt; TEST_CNT; i++) {
+					String key = (String) mContentValues[i].get(KEY_FIELD);
+					String val = (String) mContentValues[i].get(VALUE_FIELD);
+
+					Cursor resultCursor = mContentResolver.query(mUri, <span class="s0">null</span>,
+							key, <span class="s0">null</span>, <span class="s0">null</span>);
+					<span class="s0">if </span>(resultCursor == <span class="s0">null</span>) {
+						Log.e(TAG, <span class="s3">&quot;Result null&quot;</span>);
+						<span class="s0">throw new </span>Exception();
+					}
+
+					<span class="s0">int </span>keyIndex = resultCursor.getColumnIndex(KEY_FIELD);
+					<span class="s0">int </span>valueIndex = resultCursor.getColumnIndex(VALUE_FIELD);
+					<span class="s0">if </span>(keyIndex == -<span class="s2">1 </span>|| valueIndex == -<span class="s2">1</span>) {
+						Log.e(TAG, <span class="s3">&quot;Wrong columns&quot;</span>);
+						resultCursor.close();
+						<span class="s0">throw new </span>Exception();
+					}
+
+					resultCursor.moveToFirst();
+
+					<span class="s0">if </span>(!(resultCursor.isFirst() &amp;&amp; resultCursor.isLast())) {
+						Log.e(TAG, <span class="s3">&quot;Wrong number of rows&quot;</span>);
+						resultCursor.close();
+						<span class="s0">throw new </span>Exception();
+					}
+
+					String returnKey = resultCursor.getString(keyIndex);
+					String returnValue = resultCursor.getString(valueIndex);
+					<span class="s0">if </span>(!(returnKey.equals(key) &amp;&amp; returnValue.equals(val))) {
+						Log.e(TAG, <span class="s3">&quot;(key, value) pairs don't match</span><span class="s0">\n</span><span class="s3">&quot;</span>);
+						resultCursor.close();
+						<span class="s0">throw new </span>Exception();
+					}
+
+					resultCursor.close();
+				}
+			} <span class="s0">catch </span>(Exception e) {
+				<span class="s0">return false</span>;
+			}
+
+			<span class="s0">return true</span>;
+		}
+	}
+}
+</pre>
+</body>
+</html>
