@@ -1,0 +1,1340 @@
+<html>
+<head>
+<title>SimpleDynamoProvider.java</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #000080; font-weight: bold;}
+.s1 { color: #000000;}
+.s2 { color: #008000; font-weight: bold;}
+.s3 { color: #0000ff;}
+.s4 { color: #808080; font-style: italic;}
+</style>
+</head>
+<body bgcolor="#ffffff">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#c0c0c0" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+SimpleDynamoProvider.java</font>
+</center></td></tr></table>
+<pre><span class="s0">package </span>edu.buffalo.cse.cse486586.simpledynamo;
+
+<span class="s0">import </span>java.io.BufferedReader;
+<span class="s0">import </span>java.io.File;
+<span class="s0">import </span>java.io.FileNotFoundException;
+<span class="s0">import </span>java.io.FileOutputStream;
+<span class="s0">import </span>java.io.IOException;
+<span class="s0">import </span>java.io.InputStream;
+<span class="s0">import </span>java.io.InputStreamReader;
+<span class="s0">import </span>java.io.PrintWriter;
+<span class="s0">import </span>java.net.ConnectException;
+<span class="s0">import </span>java.net.InetAddress;
+<span class="s0">import </span>java.net.ServerSocket;
+<span class="s0">import </span>java.net.Socket;
+<span class="s0">import </span>java.net.SocketException;
+<span class="s0">import </span>java.net.SocketTimeoutException;
+<span class="s0">import </span>java.net.UnknownHostException;
+<span class="s0">import </span>java.security.MessageDigest;
+<span class="s0">import </span>java.security.NoSuchAlgorithmException;
+<span class="s0">import </span>java.util.ArrayList;
+<span class="s0">import </span>java.util.Arrays;
+<span class="s0">import </span>java.util.Collections;
+<span class="s0">import </span>java.util.Comparator;
+<span class="s0">import </span>java.util.Formatter;
+<span class="s0">import </span>java.util.List;
+<span class="s0">import </span>java.util.concurrent.locks.ReadWriteLock;
+<span class="s0">import </span>java.util.concurrent.locks.ReentrantReadWriteLock;
+
+<span class="s0">import </span>android.content.ContentProvider;
+<span class="s0">import </span>android.content.ContentValues;
+<span class="s0">import </span>android.content.Context;
+<span class="s0">import </span>android.database.Cursor;
+<span class="s0">import </span>android.database.MatrixCursor;
+<span class="s0">import </span>android.net.Uri;
+<span class="s0">import </span>android.os.AsyncTask;
+<span class="s0">import </span>android.telephony.TelephonyManager;
+<span class="s0">import </span>android.util.Log;
+
+<span class="s0">import </span>javax.security.auth.login.LoginException;
+
+<span class="s0">import static </span>android.content.ContentValues.TAG;
+<span class="s0">import static </span>java.lang.Thread.sleep;
+
+<span class="s0">public class </span>SimpleDynamoProvider <span class="s0">extends </span>ContentProvider {
+
+	List&lt;String&gt; nodeList= Arrays.asList(<span class="s2">&quot;5562&quot;</span>,<span class="s2">&quot;5556&quot;</span>,<span class="s2">&quot;5554&quot;</span>,<span class="s2">&quot;5558&quot;</span>,<span class="s2">&quot;5560&quot;</span>);
+	<span class="s0">static  final int </span>SERVER_PORT=<span class="s3">10000</span>;
+	ReadWriteLock readWriteLock=<span class="s0">new </span>ReentrantReadWriteLock();
+    Node node=<span class="s0">new </span>Node();
+	<span class="s0">public </span>List&lt;String&gt;globalmc=<span class="s0">new </span>ArrayList&lt;String&gt;();
+	String Failurenode = <span class="s2">&quot;&quot;</span>;
+	<span class="s0">int </span>flag;
+	@Override
+	<span class="s0">public int </span>delete(Uri uri, String selection, String[] selectionArgs) {
+		<span class="s4">// TODO Auto-generated method stub</span>
+		<span class="s0">if</span>(selection.equals(<span class="s2">&quot;@&quot;</span>))
+		{
+			<span class="s0">for </span>(String file : getContext().fileList()) {
+				getContext().deleteFile(file);
+				Log.i(TAG, <span class="s2">&quot;File is deleted&quot;</span>);
+			}
+		}
+
+		<span class="s0">else if</span>(selection.equals(<span class="s2">&quot;*&quot;</span>))
+		{
+
+				<span class="s0">if</span>(flag ==<span class="s3">0</span>)
+				{
+					flag = <span class="s3">1</span>;
+					<span class="s0">for </span>(String file : getContext().fileList())
+					{
+						getContext().deleteFile(file);
+						<span class="s4">//Log.i(TAG, &quot;File is deleted&quot;);</span>
+					}
+
+				<span class="s4">//  Log.i(TAG, &quot;delete succssesor&quot;);</span>
+					String Del_message=<span class="s2">&quot;Del_*&quot;</span>;
+					Socket socket1= <span class="s0">null</span>;
+					<span class="s0">try</span>
+					{
+						socket1 = <span class="s0">new </span>Socket(InetAddress.getByAddress(<span class="s0">new byte</span>[]{<span class="s3">10</span>,<span class="s3">0</span>,<span class="s3">2</span>,<span class="s3">2</span>}),Integer.parseInt(node.getSuccessor1())*<span class="s3">2</span>);
+						PrintWriter ds1=<span class="s0">new </span>PrintWriter(socket1.getOutputStream());
+						ds1.println(Del_message);
+						ds1.flush();
+						Thread.sleep(<span class="s3">10000</span>);
+					} <span class="s0">catch </span>(IOException e) {
+						e.printStackTrace();
+					} <span class="s0">catch </span>(InterruptedException e) {
+						e.printStackTrace();
+					}
+
+
+				}
+
+				<span class="s0">return </span><span class="s3">0</span>;
+
+
+		}
+		<span class="s0">else if</span>(!selection.equals(<span class="s2">&quot;*&quot;</span>)||!selection.equals(<span class="s2">&quot;@&quot;</span>)) {
+
+			<span class="s0">try </span>{
+				String port = <span class="s2">&quot;&quot;</span>;
+				<span class="s0">for </span>(<span class="s0">int </span>i = <span class="s3">0</span>; i &lt; nodeList.size(); i++) {
+
+					port = nodeList.get(i);
+					getContext().deleteFile(<span class="s2">&quot;resume&quot;</span>);
+
+					String Del_message = selection+ <span class="s2">&quot;:&quot; </span>+ <span class="s2">&quot;DELETE_NODE&quot;</span>;
+
+					Socket socket1 = <span class="s0">new </span>Socket(InetAddress.getByAddress(<span class="s0">new byte</span>[]{<span class="s3">10</span>, <span class="s3">0</span>, <span class="s3">2</span>, <span class="s3">2</span>}), Integer.parseInt(port) * <span class="s3">2</span>);
+					PrintWriter ds1 = <span class="s0">new </span>PrintWriter(socket1.getOutputStream());
+					ds1.println(Del_message);
+					ds1.flush();
+
+
+
+
+
+
+
+				}
+			}
+			 <span class="s0">catch </span>(UnknownHostException e) {
+				e.printStackTrace();
+			} <span class="s0">catch </span>(IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+		<span class="s0">return </span><span class="s3">0</span>;
+
+	}
+
+	@Override
+	<span class="s0">public </span>String getType(Uri uri) {
+		<span class="s4">// TODO Auto-generated method stub</span>
+		<span class="s0">return null</span>;
+	}
+
+
+	@Override
+    <span class="s0">public </span>Uri  insert(Uri uri, ContentValues values) {
+		String destnode=<span class="s2">&quot;&quot;</span>;
+		String succdestnode=<span class="s2">&quot;&quot;</span>;
+		String succdestnode1=<span class="s2">&quot;&quot;</span>;
+
+
+
+		<span class="s0">int </span>nodeIndex = <span class="s3">0</span>;
+		<span class="s4">// TODO Auto-generated method stub</span>
+		String Key = values.getAsString(<span class="s2">&quot;key&quot;</span>);
+		String Value = values.getAsString(<span class="s2">&quot;value&quot;</span>);
+		<span class="s4">//Log.i(TAG, &quot;sending the message from port&quot;+node.getCurrent());</span>
+
+
+			<span class="s0">try </span>{
+				<span class="s0">for </span>(<span class="s0">int </span>i = <span class="s3">0</span>; i &lt; <span class="s3">5</span>; i++) {
+					<span class="s4">//Log.i(TAG, &quot;inside the loop&quot;);</span>
+
+
+					<span class="s0">if </span>(genHash(Key).compareTo(genHash(nodeList.get(i))) &gt; <span class="s3">0 </span>&amp;&amp; i == nodeList.size() - <span class="s3">1</span>) {
+						destnode = nodeList.get(<span class="s3">0</span>);
+						nodeIndex = <span class="s3">0</span>;
+						<span class="s0">break</span>;
+					} <span class="s0">else if </span>((genHash(Key).compareTo(genHash(nodeList.get(i)))) &lt;= <span class="s3">0</span>) {
+						destnode = nodeList.get(i);
+						<span class="s4">//Log.i(TAG, &quot;destnode&quot; + destnode);</span>
+						nodeIndex = i;
+						<span class="s0">break</span>;
+					}
+
+
+				}
+
+
+				String insertmess = Key + <span class="s2">&quot;:&quot; </span>+ Value + <span class="s2">&quot;:&quot; </span>+ <span class="s2">&quot;insert_message&quot;</span>;
+
+
+
+
+
+					Socket socket1 = <span class="s0">new </span>Socket(InetAddress.getByAddress(<span class="s0">new byte</span>[]{<span class="s3">10</span>, <span class="s3">0</span>, <span class="s3">2</span>, <span class="s3">2</span>}), Integer.parseInt(destnode) * <span class="s3">2</span>);
+					PrintWriter ds1 = <span class="s0">new </span>PrintWriter(socket1.getOutputStream());
+					ds1.println(insertmess);
+					ds1.flush();
+				   BufferedReader ir = <span class="s0">new </span>BufferedReader(<span class="s0">new </span>InputStreamReader(socket1.getInputStream()));
+				   String ack = ir.readLine();
+				<span class="s0">try </span>{
+					<span class="s0">if </span>(ack.contains(<span class="s2">&quot;ack_ok&quot;</span>)) {
+						<span class="s4">//Log.i(TAG, &quot;no failure&quot;);</span>
+					}
+				} <span class="s0">catch </span>(NullPointerException e) {
+					Log.i(TAG, <span class="s2">&quot;there is a failure&quot;</span>);
+					Failurenode = Integer.toString(socket1.getPort() / <span class="s3">2</span>);
+					Log.i(TAG, <span class="s2">&quot;node failed&quot; </span>+ Failurenode);
+
+
+				}
+
+
+				succdestnode = nodeList.get((nodeIndex + <span class="s3">1</span>) % <span class="s3">5</span>);  <span class="s4">//1st successor node</span>
+				String destsuccmess = Key + <span class="s2">&quot;:&quot; </span>+ Value + <span class="s2">&quot;:&quot; </span>+ <span class="s2">&quot;Succ_mess&quot;</span>;
+				Socket socket2 = <span class="s0">new </span>Socket(InetAddress.getByAddress(<span class="s0">new byte</span>[]{<span class="s3">10</span>, <span class="s3">0</span>, <span class="s3">2</span>, <span class="s3">2</span>}), Integer.parseInt(succdestnode) * <span class="s3">2</span>);
+				PrintWriter ds2 = <span class="s0">new </span>PrintWriter(socket2.getOutputStream());
+				ds2.println(destsuccmess);
+				ds2.flush();
+
+				<span class="s0">try </span>{
+					BufferedReader ir1 = <span class="s0">new </span>BufferedReader(<span class="s0">new </span>InputStreamReader(socket2.getInputStream()));
+					String ack1 = ir1.readLine();
+					<span class="s0">if </span>(ack1.contains(<span class="s2">&quot;ack_ok&quot;</span>)) {
+						<span class="s4">//Log.i(TAG, &quot;no failure&quot;);</span>
+					}
+				} <span class="s0">catch </span>(NullPointerException e) {
+					Failurenode = Integer.toString(socket2.getPort() / <span class="s3">2</span>);
+					Log.i(TAG, <span class="s2">&quot;there is a failure&quot;</span>);
+
+				}
+
+
+				succdestnode1 = nodeList.get((nodeIndex + <span class="s3">2</span>) % <span class="s3">5</span>);   <span class="s4">//2nd successor node</span>
+				String destsuccmess1 = Key + <span class="s2">&quot;:&quot; </span>+ Value + <span class="s2">&quot;:&quot; </span>+ <span class="s2">&quot;Succ_mess&quot;</span>;
+				Socket socket3 = <span class="s0">new </span>Socket(InetAddress.getByAddress(<span class="s0">new byte</span>[]{<span class="s3">10</span>, <span class="s3">0</span>, <span class="s3">2</span>, <span class="s3">2</span>}), Integer.parseInt(succdestnode1) * <span class="s3">2</span>);
+				PrintWriter ds3 = <span class="s0">new </span>PrintWriter(socket3.getOutputStream());
+				ds3.println(destsuccmess1);
+				ds3.flush();
+
+
+				BufferedReader ir2 = <span class="s0">new </span>BufferedReader(<span class="s0">new </span>InputStreamReader(socket3.getInputStream()));
+				String ack2 = ir2.readLine();
+				<span class="s0">try </span>{
+					<span class="s0">if </span>(ack2.contains(<span class="s2">&quot;ack_ok&quot;</span>)) {
+						<span class="s4">//Log.i(TAG, &quot;no failure&quot;);</span>
+					}
+				} <span class="s0">catch </span>(NullPointerException e) {
+					Log.i(TAG, <span class="s2">&quot;there is a failure&quot;</span>);
+					Failurenode = Integer.toString(socket3.getPort() / <span class="s3">2</span>);
+				}
+
+
+			} <span class="s0">catch </span>(NoSuchAlgorithmException ex) {
+				ex.printStackTrace();
+			} <span class="s0">catch </span>(UnknownHostException ex) {
+				ex.printStackTrace();
+			} <span class="s0">catch </span>(FileNotFoundException ex) {
+				ex.printStackTrace();
+			} <span class="s0">catch </span>(IOException ex) {
+				ex.printStackTrace();
+			}
+
+
+
+
+
+
+
+
+
+		<span class="s0">return null</span>;
+	}
+
+	@Override
+	<span class="s0">public boolean </span>onCreate() {
+		<span class="s4">// TODO Auto-generated method stub</span>
+
+		TelephonyManager tel = (TelephonyManager) getContext().getSystemService(Context.TELEPHONY_SERVICE);
+		String portStr = tel.getLine1Number().substring(tel.getLine1Number().length() - <span class="s3">4</span>);
+		<span class="s0">final </span>String myPort = String.valueOf((Integer.parseInt(portStr) * <span class="s3">2</span>));
+		<span class="s0">int </span>index=nodeList.indexOf(portStr);
+
+        <span class="s0">int </span>predindex=(<span class="s3">5</span>+index-<span class="s3">1</span>)%<span class="s3">5</span>;
+		<span class="s0">int </span>succindex1=(index+<span class="s3">1</span>)%<span class="s3">5</span>;
+		<span class="s0">int </span>succindex2=(index+<span class="s3">2</span>)%<span class="s3">5</span>;
+
+		node.setCurrent(portStr);
+
+		Log.i(TAG, <span class="s2">&quot;node&quot;</span>+node.getCurrent());
+		node.setSuccessor1(nodeList.get(succindex1));
+		node.setSuccessor2(nodeList.get(succindex2));
+        node.setPredessor(nodeList.get(predindex));
+
+
+
+		ServerSocket serverSocket = <span class="s0">null</span>;
+
+		Log.i(TAG, <span class="s2">&quot;onCreate: server started&quot;</span>);
+		<span class="s4">//ServerSocket serverSocket = null;</span>
+		<span class="s0">try </span>{
+			serverSocket = <span class="s0">new </span>ServerSocket(SERVER_PORT);
+			<span class="s0">new </span>ServerTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, serverSocket);
+
+		} <span class="s0">catch </span>(IOException e) {
+			e.printStackTrace();
+		}
+
+
+
+			<span class="s0">if </span>(getContext().fileList().length!=<span class="s3">0</span>)    <span class="s4">//getContext().fileList().length!=0</span>
+			{
+				Log.i(TAG, <span class="s2">&quot;onCreate: resume&quot;</span>);
+				<span class="s0">for</span>(String file:getContext().fileList())
+				{
+					getContext().deleteFile(file);
+				}
+				getContext().deleteFile(<span class="s2">&quot;resume&quot;</span>);
+				<span class="s0">new </span>ClientTask().executeOnExecutor(AsyncTask.SERIAL_EXECUTOR,<span class="s2">&quot;hurray now resume&quot;</span>,myPort);
+
+			}
+			<span class="s0">else</span>{
+				FileOutputStream file;
+				<span class="s0">try </span>{
+					file=getContext().openFileOutput(<span class="s2">&quot;resume&quot;</span>,Context.MODE_PRIVATE);
+					String resume=<span class="s2">&quot;resume&quot;</span>;
+					file.write(resume.getBytes());
+				} <span class="s0">catch </span>(FileNotFoundException e) {
+					e.printStackTrace();
+				} <span class="s0">catch </span>(IOException e) {
+					e.printStackTrace();
+				}
+
+			}
+
+
+
+		<span class="s0">return false</span>;
+	}
+
+
+
+	@Override
+	 <span class="s0">public </span>Cursor query(Uri uri, String[] projection, String selection,
+			String[] selectionArgs, String sortOrder) {
+		 String mc_values;
+
+		<span class="s4">// TODO Auto-generated method stub</span>
+
+		<span class="s0">if </span>(selection.equals(<span class="s2">&quot;@&quot;</span>))
+		{
+
+			<span class="s4">//Log.i(TAG, &quot;inside the @&quot;);</span>
+
+			MatrixCursor mc = <span class="s0">new </span>MatrixCursor(<span class="s0">new </span>String[]{<span class="s2">&quot;key&quot;</span>, <span class="s2">&quot;value&quot;</span>});
+			<span class="s4">//Log.i(TAG, &quot;file is&quot;+getContext().fileList());</span>
+			readWriteLock.readLock().lock();
+			<span class="s0">for </span>(String file : getContext().fileList()) {
+
+				<span class="s0">if</span>(file.compareTo(<span class="s2">&quot;resume&quot;</span>)==<span class="s3">0</span>)
+				{
+					getContext().deleteFile(<span class="s2">&quot;resume&quot;</span>);
+				}
+				<span class="s0">else </span>{
+					<span class="s4">//Log.i(TAG, &quot;inside the for @&quot;);</span>
+					<span class="s0">try </span>{
+						InputStream fileInput = getContext().openFileInput(file);
+
+						BufferedReader bf = <span class="s0">new </span>BufferedReader(<span class="s0">new </span>InputStreamReader(fileInput));
+
+						mc_values = bf.readLine();
+						<span class="s4">// this is the print statement</span>
+
+						<span class="s4">//Log.i(TAG, &quot;text&quot; + mc_values.toString());</span>
+						<span class="s4">//mc_values = str.toString();</span>
+						bf.close();
+						mc.newRow().add(<span class="s2">&quot;key&quot;</span>, file).add(<span class="s2">&quot;value&quot;</span>, mc_values);
+
+
+					} <span class="s0">catch </span>(FileNotFoundException e) {
+
+					} <span class="s0">catch </span>(IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+			readWriteLock.readLock().unlock();
+
+			<span class="s0">return  </span>mc;
+
+
+
+		}
+		<span class="s0">else if </span>(selection.equals(<span class="s2">&quot;*&quot;</span>)) {
+			<span class="s0">try </span>{
+				MatrixCursor mc = <span class="s0">new </span>MatrixCursor(<span class="s0">new </span>String[]{<span class="s2">&quot;key&quot;</span>, <span class="s2">&quot;value&quot;</span>});
+				globalmc.clear();
+				String port = <span class="s2">&quot;&quot;</span>;
+				String dataset=<span class="s2">&quot;&quot;</span>;
+				<span class="s4">//Log.i(TAG, &quot;query:  &quot;);</span>
+				<span class="s4">//Log.i(TAG, &quot;node list&quot; + nodeList);</span>
+
+				<span class="s0">for</span>(<span class="s0">int </span>i=<span class="s3">0</span>;i&lt;nodeList.size();i++) {
+
+						port = nodeList.get(i);
+						<span class="s4">//  Log.i(TAG, &quot;query:going to node succ&quot; + nodeList.get(i));</span>
+						<span class="s4">//String key = selection;</span>
+						String Query_message = node.getCurrent() + <span class="s2">&quot;:&quot;</span>+nodeList.get(i)+<span class="s2">&quot;:&quot; </span>+ <span class="s2">&quot;*_QUERY&quot;</span>;
+						<span class="s4">//Log.i(TAG, &quot;* query  message&quot; + Insert_message);</span>
+						Socket socket1 = <span class="s0">new </span>Socket(InetAddress.getByAddress(<span class="s0">new byte</span>[]{<span class="s3">10</span>, <span class="s3">0</span>, <span class="s3">2</span>, <span class="s3">2</span>}), Integer.parseInt(port) * <span class="s3">2</span>);
+						PrintWriter ds1 = <span class="s0">new </span>PrintWriter(socket1.getOutputStream());
+						ds1.println(Query_message);
+						ds1.flush();
+
+						String querymess=<span class="s2">&quot;&quot;</span>;
+						<span class="s0">try </span>{
+
+							BufferedReader ir = <span class="s0">new </span>BufferedReader(<span class="s0">new </span>InputStreamReader(socket1.getInputStream()));
+
+							querymess = ir.readLine();
+
+							<span class="s0">if</span>(querymess.equals(<span class="s2">&quot;&quot;</span>))
+							{
+								<span class="s0">continue</span>;
+							}
+							<span class="s0">else </span>{
+								dataset = dataset + querymess + <span class="s2">&quot;-&quot;</span>;
+							}
+
+
+
+						}<span class="s0">catch </span>(Exception e)
+						{
+
+						}
+
+
+
+
+				}
+
+                sleep(<span class="s3">1000</span>);
+				<span class="s4">//Log.i(TAG, &quot;total dataset &quot;+dataset);</span>
+				globalmc= Arrays.asList(dataset.split(<span class="s2">&quot;-&quot;</span>));
+				Collections.sort(globalmc,<span class="s0">new </span>List_comparator());
+				<span class="s0">for</span>(String data:globalmc){
+					String[] datakey=data.split(<span class="s2">&quot;~&quot;</span>);
+
+				<span class="s4">//  Log.i(TAG, &quot; the ke and value &quot;+datakey[0]+datakey[1]+&quot;\n&quot;);</span>
+
+					mc.newRow().add(<span class="s2">&quot;key&quot;</span>,datakey[<span class="s3">0</span>]).add(<span class="s2">&quot;value&quot;</span>, datakey[<span class="s3">1</span>]);
+
+				}
+				Log.i(TAG, <span class="s2">&quot;query: size &quot;</span>+mc.getCount());
+
+
+
+
+
+				<span class="s0">return  </span>mc;
+
+
+
+
+
+			} <span class="s0">catch </span>(UnknownHostException e) {
+				e.printStackTrace();
+			} <span class="s0">catch </span>(FileNotFoundException e) {
+				e.printStackTrace();
+			} <span class="s0">catch </span>(IOException e) {
+				e.printStackTrace();
+			} <span class="s0">catch </span>(InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		<span class="s0">else</span>
+		{
+			<span class="s0">try </span>{
+				MatrixCursor mc = <span class="s0">new </span>MatrixCursor(<span class="s0">new </span>String[]{<span class="s2">&quot;key&quot;</span>, <span class="s2">&quot;value&quot;</span>});
+				String port = <span class="s2">&quot;&quot;</span>;
+				<span class="s4">//Log.i(TAG, &quot;query:  &quot;);</span>
+
+
+
+				<span class="s0">for</span>(<span class="s0">int </span>i=<span class="s3">0</span>;i&lt;nodeList.size();i++) {
+
+					port = nodeList.get(i);
+					<span class="s4">//Log.i(TAG, &quot;query:going to node succ&quot; + nodeList.get(i));</span>
+					String key = selection;
+					String Query_message = selection + <span class="s2">&quot;:&quot; </span>+ node.getCurrent() + <span class="s2">&quot;:&quot;</span>+nodeList.get(i)+<span class="s2">&quot;:&quot; </span>+ <span class="s2">&quot;REQUEST_QUERY&quot;</span>;
+					<span class="s4">//Log.i(TAG, &quot;insert message&quot; + Insert_message);</span>
+					Socket socket1 = <span class="s0">new </span>Socket(InetAddress.getByAddress(<span class="s0">new byte</span>[]{<span class="s3">10</span>, <span class="s3">0</span>, <span class="s3">2</span>, <span class="s3">2</span>}), Integer.parseInt(port) * <span class="s3">2</span>);
+					PrintWriter ds1 = <span class="s0">new </span>PrintWriter(socket1.getOutputStream());
+					ds1.println(Query_message);
+					ds1.flush();
+
+
+					<span class="s0">try </span>{
+
+						BufferedReader ir = <span class="s0">new </span>BufferedReader(<span class="s0">new </span>InputStreamReader(socket1.getInputStream()));
+						String querymess = ir.readLine();
+
+						String[] newquerymess = querymess.split(<span class="s2">&quot;:&quot;</span>);
+						<span class="s0">if </span>(!newquerymess[<span class="s3">1</span>].equals(<span class="s2">&quot;null&quot;</span>)) {
+							<span class="s4">//Log.i(TAG, &quot;the message from server is&quot; + querymess);</span>
+							mc.newRow().add(<span class="s2">&quot;key&quot;</span>, newquerymess[<span class="s3">0</span>]).add(<span class="s2">&quot;value&quot;</span>, newquerymess[<span class="s3">1</span>]);
+							<span class="s0">break</span>;
+						}
+						<span class="s0">else</span>{
+							<span class="s0">continue</span>;
+						}
+					}<span class="s0">catch </span>(Exception e)
+					{
+
+					}
+
+				}
+
+				<span class="s0">return </span>mc;
+
+
+			}<span class="s0">catch </span>(Exception e)
+			{
+
+			}
+		}
+
+
+
+
+
+		<span class="s4">//check the @</span>
+
+		<span class="s0">return null</span>;
+	}
+
+	@Override
+	<span class="s0">public int </span>update(Uri uri, ContentValues values, String selection,
+			String[] selectionArgs) {
+		<span class="s4">// TODO Auto-generated method stub</span>
+		<span class="s0">return </span><span class="s3">0</span>;
+	}
+
+    <span class="s0">private </span>String genHash(String input) <span class="s0">throws </span>NoSuchAlgorithmException {
+        MessageDigest sha1 = MessageDigest.getInstance(<span class="s2">&quot;SHA-1&quot;</span>);
+        <span class="s0">byte</span>[] sha1Hash = sha1.digest(input.getBytes());
+        Formatter formatter = <span class="s0">new </span>Formatter();
+        <span class="s0">for </span>(<span class="s0">byte </span>b : sha1Hash) {
+            formatter.format(<span class="s2">&quot;%02x&quot;</span>, b);
+        }
+        <span class="s0">return </span>formatter.toString();
+    }
+
+	<span class="s0">private class </span>ServerTask <span class="s0">extends </span>AsyncTask&lt;ServerSocket, String, MatrixCursor&gt; {
+
+		@Override
+		<span class="s0">protected </span>MatrixCursor doInBackground(ServerSocket... serverSockets) {
+			Uri.Builder uriBuilder = <span class="s0">new </span>Uri.Builder();
+			uriBuilder.authority(<span class="s2">&quot;edu.buffalo.cse.cse486586.simpledht.provider&quot;</span>);
+			uriBuilder.scheme(<span class="s2">&quot;content&quot;</span>);
+			Uri mUri=uriBuilder.build();
+
+			ServerSocket serverSocket = serverSockets[<span class="s3">0</span>];
+			<span class="s0">try </span>{
+
+				Log.i(TAG, <span class="s2">&quot;inside the server&quot;</span>);
+				<span class="s0">while </span>(<span class="s0">true</span>) {
+
+					Socket clientSocket = serverSocket.accept();
+					<span class="s4">//Dataset.clear();</span>
+
+					BufferedReader ir = <span class="s0">new </span>BufferedReader(<span class="s0">new </span>InputStreamReader(clientSocket.getInputStream()));
+					PrintWriter ds = <span class="s0">new </span>PrintWriter(clientSocket.getOutputStream());
+					String message = ir.readLine();
+
+					<span class="s0">if</span>(message.contains(<span class="s2">&quot;insert_message&quot;</span>))
+					{
+                        <span class="s0">try </span>{
+							String[] insert_mess = message.split(<span class="s2">&quot;:&quot;</span>);
+							String filename1;
+
+							<span class="s0">if</span>(insert_mess.equals(<span class="s2">&quot;&quot;</span>))
+							{
+
+							}
+							<span class="s0">else </span>{
+
+								readWriteLock.writeLock().lock();
+								<span class="s4">//Log.i(TAG, &quot;port is locked in insert&quot;);</span>
+								filename1 = insert_mess[<span class="s3">0</span>];
+
+								String value = insert_mess[<span class="s3">1</span>];
+
+								FileOutputStream outputStream1;
+								outputStream1 = getContext().openFileOutput(filename1, Context.MODE_PRIVATE);
+								outputStream1.write(value.getBytes());
+								outputStream1.close();
+
+								readWriteLock.writeLock().unlock();
+
+
+								String ack = <span class="s2">&quot;ack_ok&quot;</span>;
+								Log.i(TAG, <span class="s2">&quot;ack send &quot;</span>);
+								PrintWriter ds1 = <span class="s0">new </span>PrintWriter(clientSocket.getOutputStream());
+								ds1.println(ack);
+								ds1.flush();
+							}
+						}<span class="s0">catch </span>(Exception e)
+						{
+
+						}
+
+
+
+					}
+					<span class="s0">else if</span>(message.contains(<span class="s2">&quot;Succ_mess&quot;</span>))
+					{
+                        <span class="s0">try </span>{
+							String[] succ_mess = message.split(<span class="s2">&quot;:&quot;</span>);
+							String filename1;
+							<span class="s0">if</span>(succ_mess.equals(<span class="s2">&quot;&quot;</span>))
+							{
+
+							}
+							<span class="s0">else </span>{
+								<span class="s4">//Log.i(TAG, &quot;succesor insert locked&quot;);</span>
+								readWriteLock.writeLock().lock();
+								filename1 = succ_mess[<span class="s3">0</span>];
+								String value = succ_mess[<span class="s3">1</span>];
+
+								FileOutputStream outputStream1;
+								outputStream1 = getContext().openFileOutput(filename1, Context.MODE_PRIVATE);
+								outputStream1.write(value.getBytes());
+								outputStream1.close();
+								readWriteLock.writeLock().unlock();
+
+
+								String ack = <span class="s2">&quot;ack_ok&quot;</span>;
+								PrintWriter ds1 = <span class="s0">new </span>PrintWriter(clientSocket.getOutputStream());
+
+								ds1.println(ack);
+								ds1.flush();
+							}
+						}<span class="s0">catch </span>(Exception e)
+						{
+
+						}
+
+					}
+
+					<span class="s0">else  if</span>(message.contains(<span class="s2">&quot;REQUEST_QUERY&quot;</span>))
+					{ String mc_values=<span class="s2">&quot;&quot;</span>;
+						<span class="s0">try </span>{
+							String[] queryreqMess = message.split(<span class="s2">&quot;:&quot;</span>);
+							<span class="s4">//Log.i(TAG, &quot;im inside the query node request&quot; + message+ &quot;to the node&quot;+queryreqMess[2]);</span>
+
+							String sendmessage=<span class="s2">&quot;&quot;</span>;
+
+
+
+							<span class="s0">for </span>(String file : getContext().fileList()) {
+								<span class="s4">// Log.i(TAG, &quot;inside the file in request query&quot;);</span>
+
+								<span class="s0">if </span>(queryreqMess[<span class="s3">0</span>].compareTo(file) == <span class="s3">0</span>) {
+									readWriteLock.readLock().lock();
+									InputStream fileInput = getContext().openFileInput(file);
+									BufferedReader bf = <span class="s0">new </span>BufferedReader(<span class="s0">new </span>InputStreamReader(fileInput));
+									mc_values = bf.readLine();
+									readWriteLock.readLock().unlock();
+									<span class="s4">//sendmessage=file+&quot;:&quot;+mc_values;</span>
+									<span class="s0">break</span>;
+
+								} <span class="s0">else </span>{
+									<span class="s4">//Log.i(TAG, &quot;not in the port&quot;);</span>
+									mc_values = <span class="s2">&quot;null&quot;</span>;
+
+								}
+
+							}
+							<span class="s0">try </span>{
+
+								sendmessage=queryreqMess[<span class="s3">0</span>]+<span class="s2">&quot;:&quot;</span>+mc_values;
+							<span class="s4">//  Log.i(TAG, &quot;the message found in&quot;+queryreqMess[2]+&quot;send message&quot;+sendmessage);</span>
+								PrintWriter ds1 = <span class="s0">new </span>PrintWriter(clientSocket.getOutputStream());
+								ds1.println(sendmessage);
+								ds1.flush();
+							}
+							<span class="s0">catch </span>(IOException e) {
+								e.printStackTrace();
+							}
+
+
+
+
+
+
+
+						} <span class="s0">catch </span>(FileNotFoundException ex) {
+							ex.printStackTrace();
+						} <span class="s0">catch </span>(IOException ex) {
+							ex.printStackTrace();
+						}
+					}
+					<span class="s0">else if</span>(message.contains(<span class="s2">&quot;*_QUERY&quot;</span>))
+					{    String mc_values=<span class="s2">&quot;&quot;</span>;
+						<span class="s0">try </span>{
+
+							List &lt;String&gt; Dataset=<span class="s0">new </span>ArrayList&lt;String&gt;();
+							String[] queryreqMess = message.split(<span class="s2">&quot;:&quot;</span>);
+							<span class="s4">//Log.i(TAG, &quot;im inside the query node request&quot; + message+ &quot;to the node&quot;+queryreqMess[2]);</span>
+
+							String sendmessage=<span class="s2">&quot;&quot;</span>;
+
+
+                            <span class="s0">if</span>(getContext().fileList().length!=<span class="s3">0</span>) {
+								readWriteLock.readLock().lock();
+								<span class="s0">for </span>(String file : getContext().fileList()) {
+									<span class="s4">// Log.i(TAG, &quot;inside the file in request query&quot;);</span>
+
+									InputStream fileInput = getContext().openFileInput(file);
+									BufferedReader bf = <span class="s0">new </span>BufferedReader(<span class="s0">new </span>InputStreamReader(fileInput));
+									mc_values = bf.readLine();
+									<span class="s4">//sendmessage=file+&quot;:&quot;+mc_values;</span>
+									String datakey = file + <span class="s2">&quot;~&quot; </span>+ mc_values;
+									Dataset.add(datakey);
+
+
+
+								}
+								readWriteLock.readLock().unlock();
+
+								String datastr = <span class="s2">&quot;&quot;</span>;
+								<span class="s0">try </span>{
+
+									<span class="s0">for </span>(<span class="s0">int </span>i = <span class="s3">0</span>; i &lt; Dataset.size() - <span class="s3">1</span>; i++) {
+										datastr = datastr + Dataset.get(i) + <span class="s2">&quot;-&quot;</span>;
+
+
+									}
+									datastr = datastr + Dataset.get(Dataset.size() - <span class="s3">1</span>);
+
+									sendmessage = datastr;
+									<span class="s4">//Log.i(TAG, &quot;the message found in&quot; + queryreqMess[2] + &quot;send message&quot; + sendmessage);</span>
+									PrintWriter ds1 = <span class="s0">new </span>PrintWriter(clientSocket.getOutputStream());
+									ds1.println(sendmessage);
+									ds1.flush();
+								} <span class="s0">catch </span>(IOException e) {
+									e.printStackTrace();
+								}
+
+
+							}
+                            <span class="s0">else</span>
+							{
+								String datastr = <span class="s2">&quot;&quot;</span>;
+								sendmessage = datastr;
+								<span class="s4">//Log.i(TAG, &quot;the message found in&quot; + queryreqMess[2] + &quot;send message&quot; + sendmessage);</span>
+								PrintWriter ds1 = <span class="s0">new </span>PrintWriter(clientSocket.getOutputStream());
+								ds1.println(sendmessage);
+								ds1.flush();
+
+							}
+
+
+
+
+
+
+
+
+
+						} <span class="s0">catch </span>(FileNotFoundException ex) {
+							ex.printStackTrace();
+						} <span class="s0">catch </span>(IOException ex) {
+							ex.printStackTrace();
+						}
+
+
+					}
+					<span class="s0">else if</span>(message.contains(<span class="s2">&quot;Del_*&quot;</span>))
+					{
+
+						<span class="s0">if</span>(flag ==<span class="s3">0</span>)
+						{
+
+							<span class="s0">for </span>(String file : getContext().fileList())
+							{
+								getContext().deleteFile(file);
+							<span class="s4">//  Log.i(TAG, &quot;File is deleted&quot;);</span>
+							}
+
+							<span class="s4">//Log.i(TAG, &quot;delete in server node succssesor&quot;);</span>
+							String Del_message=<span class="s2">&quot;Del_*&quot;</span>;
+							Socket socket1= <span class="s0">null</span>;
+							<span class="s0">try</span>
+							{
+								socket1 = <span class="s0">new </span>Socket(InetAddress.getByAddress(<span class="s0">new byte</span>[]{<span class="s3">10</span>,<span class="s3">0</span>,<span class="s3">2</span>,<span class="s3">2</span>}),Integer.parseInt(node.getSuccessor1())*<span class="s3">2</span>);
+								PrintWriter ds1=<span class="s0">new </span>PrintWriter(socket1.getOutputStream());
+								ds1.println(Del_message);
+								ds1.flush();
+							} <span class="s0">catch </span>(IOException e) {
+								e.printStackTrace();
+							}
+
+
+						}
+						<span class="s0">else if </span>(flag==<span class="s3">1</span>)
+						{
+							flag=<span class="s3">0</span>;
+						}
+
+					}
+
+					<span class="s0">else if</span>(message.contains(<span class="s2">&quot;DELETE_NODE&quot;</span>))
+					{
+						readWriteLock.writeLock().lock();
+						<span class="s0">try </span>{
+
+							String[] deleteMess = message.split(<span class="s2">&quot;:&quot;</span>);
+							File file = getContext().getFileStreamPath(deleteMess[<span class="s3">0</span>]);
+							<span class="s0">if </span>(file != <span class="s0">null</span>) {
+								<span class="s4">//String delete_ack = &quot;delete_ok&quot;;</span>
+								getContext().deleteFile(deleteMess[<span class="s3">0</span>]);
+							}
+
+
+						}
+						<span class="s0">catch </span>(NullPointerException e)
+						{
+
+						}
+						<span class="s0">catch </span>(Exception e)
+						{
+
+						}
+						readWriteLock.writeLock().unlock();
+
+
+					}
+
+					<span class="s0">else if</span>(message.contains(<span class="s2">&quot;Co-recovery&quot;</span>))    <span class="s4">//if failed node is a coordinator</span>
+					{   <span class="s0">try </span>{
+						List&lt;String&gt; globalmc2;
+						<span class="s4">//send the message to the   successor  and recieve the list from the successor</span>
+
+
+						Log.i(TAG, <span class="s2">&quot;inside co-recovery&quot; </span>+ <span class="s2">&quot;the succor node is &quot; </span>+ node.getSuccessor1());
+						String Co_message = node.getCurrent() + <span class="s2">&quot;:&quot; </span>+ node.getPredessor() + <span class="s2">&quot;:&quot; </span>+ <span class="s2">&quot;List&quot;</span>;
+						Socket socket1;
+						String dataset = <span class="s2">&quot;&quot;</span>;
+
+						socket1 = <span class="s0">new </span>Socket(InetAddress.getByAddress(<span class="s0">new byte</span>[]{<span class="s3">10</span>, <span class="s3">0</span>, <span class="s3">2</span>, <span class="s3">2</span>}), Integer.parseInt(node.getSuccessor1()) * <span class="s3">2</span>);
+						PrintWriter ds1 = <span class="s0">new </span>PrintWriter(socket1.getOutputStream());
+						ds1.println(Co_message);
+						ds1.flush();
+
+
+						<span class="s4">//sleep(100);</span>
+						String Comess = <span class="s2">&quot;&quot;</span>;
+						<span class="s0">while </span>(<span class="s0">true</span>) {
+
+							BufferedReader ir1 = <span class="s0">new </span>BufferedReader(<span class="s0">new </span>InputStreamReader(socket1.getInputStream()));
+							Comess = ir1.readLine();
+							<span class="s0">if </span>(!Comess.equals(<span class="s2">&quot;&quot;</span>)) {
+								<span class="s0">break</span>;
+							}
+						}
+
+
+						<span class="s0">if </span>(Comess.equals(<span class="s2">&quot;nothing&quot;</span>)) {
+						}
+
+						<span class="s0">else</span>{
+						dataset = Comess;
+
+						<span class="s4">//}</span>
+
+
+						Log.i(TAG, <span class="s2">&quot;total dataset &quot; </span>+ dataset);
+						globalmc2 = Arrays.asList(dataset.split(<span class="s2">&quot;-&quot;</span>));
+
+						readWriteLock.writeLock().lock();
+						<span class="s0">for </span>(String data : globalmc2) {
+							String[] datakey = data.split(<span class="s2">&quot;~&quot;</span>);
+
+
+							String filename1 = datakey[<span class="s3">0</span>];
+							String value = datakey[<span class="s3">1</span>];
+							FileOutputStream outputStream1;
+							outputStream1 = getContext().openFileOutput(filename1, Context.MODE_PRIVATE);
+							outputStream1.write(value.getBytes());
+							outputStream1.close();
+
+
+						}
+						readWriteLock.writeLock().unlock();
+
+						Log.i(TAG, <span class="s2">&quot;port &quot; </span>+ socket1.getPort() / <span class="s3">2 </span>+ <span class="s2">&quot;new recovered data inserted&quot;</span>);
+					}
+					}<span class="s0">catch </span>(Exception e)
+					{
+
+					}
+                       <span class="s4">/*PrintWriter ackClient=new PrintWriter(clientSocket.getOutputStream()); 
+                       ackClient.write(&quot;ack_client&quot;); 
+                       ackClient.flush();*/</span>
+
+
+
+					}
+					<span class="s0">else if</span>(message.contains(<span class="s2">&quot;Suc-recovery&quot;</span>))   <span class="s4">//if failed node is successor1</span>
+					{
+						<span class="s0">try </span>{
+							Log.i(TAG, <span class="s2">&quot;inside suc recovery&quot;</span>);
+
+							List&lt;String&gt; globalmc1;
+							<span class="s0">int </span>index_recmess = nodeList.indexOf(node.getCurrent());
+							String coordinator_node = nodeList.get((<span class="s3">5 </span>+ index_recmess - <span class="s3">1</span>) % <span class="s3">5</span>);
+							String predessornode = nodeList.get((<span class="s3">5 </span>+ index_recmess - <span class="s3">2</span>) % <span class="s3">5</span>);
+							Log.i(TAG, <span class="s2">&quot;the predessor node in suc recovery is &quot; </span>+ predessornode);
+							String su_message = coordinator_node + <span class="s2">&quot;:&quot; </span>+ predessornode + <span class="s2">&quot;:&quot; </span>+ <span class="s2">&quot;List&quot;</span>;
+
+
+							Socket socket1;
+							String dataset = <span class="s2">&quot;&quot;</span>;
+							socket1 = <span class="s0">new </span>Socket(InetAddress.getByAddress(<span class="s0">new byte</span>[]{<span class="s3">10</span>, <span class="s3">0</span>, <span class="s3">2</span>, <span class="s3">2</span>}), Integer.parseInt(coordinator_node) * <span class="s3">2</span>);
+							PrintWriter ds1 = <span class="s0">new </span>PrintWriter(socket1.getOutputStream());
+							ds1.println(su_message);
+							ds1.flush();
+							String Comess = <span class="s2">&quot;&quot;</span>;
+							<span class="s4">//sleep(100);</span>
+							<span class="s0">while </span>(<span class="s0">true</span>) {
+								BufferedReader ir1 = <span class="s0">new </span>BufferedReader(<span class="s0">new </span>InputStreamReader(socket1.getInputStream()));
+								Comess = ir1.readLine();
+								<span class="s0">if </span>(!Comess.equals(<span class="s2">&quot;&quot;</span>)) {
+
+									<span class="s0">break</span>;
+								}
+
+							}
+
+                            <span class="s0">if</span>(Comess.equals(<span class="s2">&quot;nothing&quot;</span>))
+							{
+
+							}
+                            <span class="s0">else </span>{
+								dataset = Comess;
+
+								Log.i(TAG, <span class="s2">&quot;total dataset &quot; </span>+ dataset);
+								globalmc1 = Arrays.asList(dataset.split(<span class="s2">&quot;-&quot;</span>));
+
+								readWriteLock.writeLock().lock();
+								<span class="s0">for </span>(String data : globalmc1) {
+									String[] datakey = data.split(<span class="s2">&quot;~&quot;</span>);
+
+
+									String filename1 = datakey[<span class="s3">0</span>];
+									String value = datakey[<span class="s3">1</span>];
+									FileOutputStream outputStream1;
+									outputStream1 = getContext().openFileOutput(filename1, Context.MODE_PRIVATE);
+									outputStream1.write(value.getBytes());
+									outputStream1.close();
+
+
+								}
+								readWriteLock.writeLock().unlock();
+
+								Log.i(TAG, <span class="s2">&quot;new suc recovery data inserted&quot;</span>);
+							}
+						}<span class="s0">catch </span>(Exception e)
+						{
+
+						}
+						<span class="s4">/*PrintWriter ackClient=new PrintWriter(clientSocket.getOutputStream()); 
+                        ackClient.write(&quot;ack_client&quot;); 
+                        ackClient.flush();*/</span>
+
+
+					}
+					<span class="s0">else if</span>(message.contains(<span class="s2">&quot;2nd-recovery&quot;</span>))   <span class="s4">//if the failed node is a 2nd successor node</span>
+					{
+                        <span class="s0">try </span>{
+							List&lt;String&gt; globalmc1;
+							<span class="s0">int </span>index_recmess = nodeList.indexOf(node.getCurrent());
+							String coordinator_node = nodeList.get((<span class="s3">5 </span>+ index_recmess - <span class="s3">2</span>) % <span class="s3">5</span>);
+							String predessornode = nodeList.get((<span class="s3">5 </span>+ index_recmess - <span class="s3">3</span>) % <span class="s3">5</span>);
+							Log.i(TAG, <span class="s2">&quot;the predessor node  in 2nd recoveru is &quot; </span>+ predessornode);
+							String suc_message = coordinator_node + <span class="s2">&quot;:&quot; </span>+ predessornode + <span class="s2">&quot;:&quot; </span>+ <span class="s2">&quot;List&quot;</span>;
+							<span class="s4">//String Insert_message=coordinator_node+&quot;:&quot;+&quot;List&quot;;</span>
+							Log.i(TAG, <span class="s2">&quot;inside the 1_suc-recovery &quot; </span>+ coordinator_node);
+							Log.i(TAG, <span class="s2">&quot;inside the 1_suc-recovery &quot; </span>+ <span class="s2">&quot;and the list will go to&quot; </span>+ coordinator_node);
+
+							Socket socket1;
+							String dataset = <span class="s2">&quot;&quot;</span>;
+							socket1 = <span class="s0">new </span>Socket(InetAddress.getByAddress(<span class="s0">new byte</span>[]{<span class="s3">10</span>, <span class="s3">0</span>, <span class="s3">2</span>, <span class="s3">2</span>}), Integer.parseInt(coordinator_node) * <span class="s3">2</span>);
+							PrintWriter ds1 = <span class="s0">new </span>PrintWriter(socket1.getOutputStream());
+							ds1.println(suc_message);
+							ds1.flush();
+
+							<span class="s4">//sleep(100);</span>
+
+							String Comess = <span class="s2">&quot;&quot;</span>;
+							<span class="s0">while </span>(<span class="s0">true</span>) {
+								BufferedReader ir1 = <span class="s0">new </span>BufferedReader(<span class="s0">new </span>InputStreamReader(socket1.getInputStream()));
+								Comess = ir1.readLine();
+								<span class="s0">if </span>(!Comess.equals(<span class="s2">&quot;&quot;</span>)) {
+									<span class="s0">break</span>;
+								}
+							}
+							<span class="s0">if</span>(Comess.equals(<span class="s2">&quot;nothing&quot;</span>))
+							{
+
+							}
+							<span class="s0">else </span>{
+								dataset = Comess;
+
+
+								Log.i(TAG, <span class="s2">&quot;total dataset &quot; </span>+ dataset);
+								globalmc1 = Arrays.asList(dataset.split(<span class="s2">&quot;-&quot;</span>));
+
+								readWriteLock.writeLock().lock();
+								<span class="s0">for </span>(String data : globalmc1) {
+									String[] datakey = data.split(<span class="s2">&quot;~&quot;</span>);
+
+
+									String filename1 = datakey[<span class="s3">0</span>];
+									String value = datakey[<span class="s3">1</span>];
+									FileOutputStream outputStream1;
+									outputStream1 = getContext().openFileOutput(filename1, Context.MODE_PRIVATE);
+									outputStream1.write(value.getBytes());
+									outputStream1.close();
+
+
+								}
+								readWriteLock.writeLock().unlock();
+
+								Log.i(TAG, <span class="s2">&quot;new suc recovery1 data inserted&quot;</span>);
+							}
+						<span class="s4">/*PrintWriter ackClient=new PrintWriter(clientSocket.getOutputStream()); 
+                        ackClient.write(&quot;ack_client&quot;); 
+                        ackClient.flush();*/</span>
+
+						}<span class="s0">catch </span>(Exception e)
+						{
+
+						}
+
+
+					}
+
+					<span class="s0">else if</span>(message.contains(<span class="s2">&quot;List&quot;</span>)) {
+						String[] recMess = message.split(<span class="s2">&quot;:&quot;</span>);
+						String mc_values = <span class="s2">&quot;&quot;</span>;
+
+						List&lt;String&gt; Dataset = <span class="s0">new </span>ArrayList&lt;String&gt;();
+						<span class="s4">//String nodevalue= Integer.toString(Integer.parseInt(recMess[0]));</span>
+						<span class="s0">int </span>index_recmess = nodeList.indexOf(recMess[<span class="s3">0</span>]);
+
+						Log.i(TAG, <span class="s2">&quot;the preessor is &quot; </span>+ recMess[<span class="s3">1</span>]);
+						<span class="s0">if</span>(getContext().fileList().length==<span class="s3">0</span>)
+						{
+                            String sendmessage=<span class="s2">&quot;nothing&quot;</span>;
+							PrintWriter ds1 = <span class="s0">new </span>PrintWriter(clientSocket.getOutputStream());
+							ds1.println(sendmessage);
+							ds1.flush();
+						}
+						<span class="s0">else</span>{
+							<span class="s0">if </span>(index_recmess == <span class="s3">0</span>)    <span class="s4">// when the node is a boundary node get data  that is greater than the last node .</span>
+							{
+								<span class="s0">int </span>lastnodeindex = <span class="s3">4</span>;
+								<span class="s4">//Log.i(TAG, &quot;the noe in List&quot;+recMess[0]);</span>
+								String lastnode = nodeList.get(lastnodeindex);
+								Log.i(TAG, <span class="s2">&quot;inside the first node&quot; </span>+ recMess[<span class="s3">0</span>] + <span class="s2">&quot;the 4th node is&quot; </span>+ lastnode);
+
+
+								readWriteLock.readLock().lock();
+								<span class="s0">for </span>(String file : getContext().fileList()) {
+									<span class="s0">if </span>((genHash(file).compareTo(genHash(recMess[<span class="s3">0</span>])) &lt;= <span class="s3">0</span>) || (genHash(file).compareTo(genHash(lastnode)) &gt; <span class="s3">0</span>))  <span class="s4">//recMess[0]</span>
+									{
+										InputStream fileInput = getContext().openFileInput(file);
+										BufferedReader bf = <span class="s0">new </span>BufferedReader(<span class="s0">new </span>InputStreamReader(fileInput));
+										mc_values = bf.readLine();
+										<span class="s4">//sendmessage=file+&quot;:&quot;+mc_values;</span>
+										String datakey = file + <span class="s2">&quot;~&quot; </span>+ mc_values;
+										Dataset.add(datakey);
+
+									}
+								}
+								readWriteLock.readLock().unlock();
+
+
+								String datastr = <span class="s2">&quot;&quot;</span>;
+								<span class="s0">try </span>{
+
+
+									<span class="s0">for </span>(<span class="s0">int </span>i = <span class="s3">0</span>; i &lt; (Dataset.size() - <span class="s3">1</span>); i++) {
+										datastr = datastr + Dataset.get(i) + <span class="s2">&quot;-&quot;</span>;
+
+
+									}
+									datastr = datastr + Dataset.get(Dataset.size() - <span class="s3">1</span>);
+									Dataset.clear();
+
+									String sendmessage = datastr;
+									Log.i(TAG, <span class="s2">&quot;data to be send to avd 4&quot; </span>+ sendmessage);
+
+									PrintWriter ds1 = <span class="s0">new </span>PrintWriter(clientSocket.getOutputStream());
+									ds1.println(sendmessage);
+									ds1.flush();
+
+								} <span class="s0">catch </span>(IOException e) {
+									e.printStackTrace();
+								}
+
+							}
+							<span class="s0">else</span>{
+								Log.i(TAG, <span class="s2">&quot;node in list &quot; </span>+ recMess[<span class="s3">0</span>] + <span class="s2">&quot;predessor in list&quot;</span>);
+
+								readWriteLock.readLock().lock();
+								<span class="s0">for </span>(String file : getContext().fileList()) {
+									<span class="s0">if </span>((genHash(file).compareTo(genHash(recMess[<span class="s3">0</span>])) &lt;= <span class="s3">0</span>))<span class="s4">//&amp;&amp;(file.compareTo(genHash(recMess[1]))&gt;0))</span>
+									{
+										<span class="s0">if </span>(genHash(recMess[<span class="s3">1</span>]).compareTo(genHash(file)) &lt; <span class="s3">0</span>) {
+											InputStream fileInput = getContext().openFileInput(file);
+											BufferedReader bf = <span class="s0">new </span>BufferedReader(<span class="s0">new </span>InputStreamReader(fileInput));
+											mc_values = bf.readLine();
+
+											String datakey = file + <span class="s2">&quot;~&quot; </span>+ mc_values;
+											Dataset.add(datakey);
+										}
+
+
+									}
+								}
+								readWriteLock.readLock().unlock();
+
+
+								String datastr = <span class="s2">&quot;&quot;</span>;
+								<span class="s0">try </span>{
+									<span class="s0">if </span>(Dataset.size() == <span class="s3">0</span>) {
+
+									} <span class="s0">else </span>{
+										<span class="s0">for </span>(<span class="s0">int </span>i = <span class="s3">0</span>; i &lt; (Dataset.size() - <span class="s3">1</span>); i++) {
+											datastr = datastr + Dataset.get(i) + <span class="s2">&quot;-&quot;</span>;
+
+
+										}
+										datastr = datastr + Dataset.get(Dataset.size() - <span class="s3">1</span>);
+										Dataset.clear();
+										String sendmessage = datastr;
+										<span class="s4">//Log.i(TAG, &quot;the message found in&quot; + queryreqMess[2] + &quot;send message&quot; + sendmessage);</span>
+										PrintWriter ds1 = <span class="s0">new </span>PrintWriter(clientSocket.getOutputStream());
+										ds1.println(sendmessage);
+										ds1.flush();
+									}
+								} <span class="s0">catch </span>(IOException e) {
+									e.printStackTrace();
+								}
+
+
+							}
+						}
+
+
+
+						}
+
+					}
+
+			} <span class="s0">catch </span>(IOException e) {
+				e.printStackTrace();
+			} <span class="s0">catch </span>(NoSuchAlgorithmException e) {
+				e.printStackTrace();
+			}
+
+			<span class="s0">return null</span>;
+		}
+	}
+
+
+	<span class="s0">private class </span>ClientTask <span class="s0">extends </span>AsyncTask&lt;String,Void,String&gt;{
+		@Override
+		<span class="s0">protected </span>String doInBackground(String... strings) {
+			Log.i(TAG, <span class="s2">&quot;doInBackground: of client&quot;</span>+strings[<span class="s3">0</span>]);
+
+			<span class="s0">try </span>{
+				String mess=node.getCurrent()+<span class="s2">&quot;:&quot;</span>+<span class="s2">&quot;Co-recovery&quot;</span>;
+				String mess1 =node.getCurrent()+<span class="s2">&quot;:&quot;</span>+<span class="s2">&quot;Suc-recovery&quot;</span>;
+				String mess2 =node.getCurrent()+<span class="s2">&quot;:&quot;</span>+<span class="s2">&quot;2nd-recovery&quot;</span>;
+				PrintWriter ds1 = <span class="s0">null</span>;
+				<span class="s4">//Log.i(TAG, &quot;Strings[1]*2&quot;+Integer.parseInt(strings[1]));</span>
+
+				Socket socketf1= <span class="s0">new </span>Socket(InetAddress.getByAddress(<span class="s0">new byte</span>[]{<span class="s3">10</span>, <span class="s3">0</span>, <span class="s3">2</span>, <span class="s3">2</span>}), Integer.parseInt(strings[<span class="s3">1</span>]));
+				ds1 = <span class="s0">new </span>PrintWriter(socketf1.getOutputStream());
+				ds1.println(mess);
+				ds1.flush();
+
+                 sleep(<span class="s3">1000</span>);
+
+
+				Socket socketf2= <span class="s0">new </span>Socket(InetAddress.getByAddress(<span class="s0">new byte</span>[]{<span class="s3">10</span>, <span class="s3">0</span>, <span class="s3">2</span>, <span class="s3">2</span>}), Integer.parseInt(strings[<span class="s3">1</span>]));
+				PrintWriter ds2 = <span class="s0">new </span>PrintWriter(socketf2.getOutputStream());
+				ds2.println(mess1);
+				ds2.flush();
+
+				sleep(<span class="s3">1000</span>);
+
+
+
+				Socket socketf3= <span class="s0">new </span>Socket(InetAddress.getByAddress(<span class="s0">new byte</span>[]{<span class="s3">10</span>, <span class="s3">0</span>, <span class="s3">2</span>, <span class="s3">2</span>}), Integer.parseInt(strings[<span class="s3">1</span>]));
+				PrintWriter ds3 = <span class="s0">new </span>PrintWriter(socketf3.getOutputStream());
+				ds3.println(mess2);
+				ds3.flush();
+
+
+				sleep(<span class="s3">1000</span>);
+
+
+			} <span class="s0">catch </span>(IOException e) {
+				e.printStackTrace();
+			} <span class="s0">catch </span>(InterruptedException e) {
+				e.printStackTrace();
+			}
+
+			<span class="s0">return null</span>;
+		}
+	}
+}
+
+
+<span class="s0">class </span>Node
+{
+	String predessor;
+	String Successor1;
+	String Successor2;
+	String Current;
+	String PredessorHash;
+	String SuccessorHash;
+	String CurrentHash;
+
+	<span class="s0">public </span>String getCurrent() {
+		<span class="s0">return </span>Current;
+	}
+
+	<span class="s0">public </span>String getCurrentHash() {
+		<span class="s0">return </span>CurrentHash;
+	}
+
+	<span class="s0">public </span>String getPredessor() {
+		<span class="s0">return </span>predessor;
+	}
+
+	<span class="s0">public </span>String getPredessorHash() {
+		<span class="s0">return </span>PredessorHash;
+	}
+
+	<span class="s0">public </span>String getSuccessor1() {
+		<span class="s0">return </span>Successor1;
+	}
+
+	<span class="s0">public </span>String getSuccessor2() {
+		<span class="s0">return </span>Successor2;
+	}
+
+	<span class="s0">public </span>String getSuccessorHash() {
+		<span class="s0">return </span>SuccessorHash;
+	}
+
+	<span class="s0">public void </span>setCurrent(String current) {
+		Current = current;
+	}
+
+	<span class="s0">public void </span>setCurrentHash(String currentHash) {
+		CurrentHash = currentHash;
+	}
+
+	<span class="s0">public void </span>setPredessor(String predessor) {
+		<span class="s0">this</span>.predessor = predessor;
+	}
+
+	<span class="s0">public void </span>setPredessorHash(String predessorHash) {
+		PredessorHash = predessorHash;
+	}
+
+	<span class="s0">public void </span>setSuccessor1(String successor1) {
+		Successor1 = successor1;
+
+	}
+
+	<span class="s0">public void </span>setSuccessor2(String successor2) {
+		Successor2 = successor2;
+	}
+
+	<span class="s0">public void </span>setSuccessorHash(String successorHash) {
+		SuccessorHash = successorHash;
+	}
+}
+
+
+<span class="s0">class </span>List_comparator <span class="s0">implements </span>Comparator&lt;String&gt;                               <span class="s4">//geekforgeeks/priorityqueue-comparator-method-in-java</span>
+{
+	@Override
+	<span class="s0">public int </span>compare(String lhs, String rhs) {
+		<span class="s0">try </span>{
+			String[] messl=lhs.split(<span class="s2">&quot;~&quot;</span>);
+			String[] messr=rhs.split(<span class="s2">&quot;~&quot;</span>);
+			<span class="s0">if</span>(genHash(messl[<span class="s3">0</span>]).compareTo(genHash(messr[<span class="s3">0</span>]))&gt;<span class="s3">0</span>)
+
+			{
+				<span class="s0">return </span><span class="s3">1</span>;
+			}
+			<span class="s0">else if</span>(genHash(messl[<span class="s3">0</span>]).compareTo(genHash(messr[<span class="s3">0</span>]))&lt;<span class="s3">0</span>)
+			{
+				<span class="s0">return </span>-<span class="s3">1</span>;
+			}
+		} <span class="s0">catch </span>(NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}
+		<span class="s0">return </span><span class="s3">0</span>;
+	}
+
+
+	<span class="s0">private </span>String genHash(String input) <span class="s0">throws </span>NoSuchAlgorithmException {
+		MessageDigest sha1 = MessageDigest.getInstance(<span class="s2">&quot;SHA-1&quot;</span>);
+		<span class="s0">byte</span>[] sha1Hash = sha1.digest(input.getBytes());
+		Formatter formatter = <span class="s0">new </span>Formatter();
+		<span class="s0">for </span>(<span class="s0">byte </span>b : sha1Hash) {
+			formatter.format(<span class="s2">&quot;%02x&quot;</span>, b);
+		}
+		<span class="s0">return </span>formatter.toString();
+	}
+}
+</pre>
+</body>
+</html>
