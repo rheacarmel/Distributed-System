@@ -1,0 +1,710 @@
+<html>
+<head>
+<title>GroupMessengerActivity.java</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #000080; font-weight: bold;}
+.s1 { color: #000000;}
+.s2 { color: #808080; font-style: italic;}
+.s3 { color: #808080; font-weight: bold; font-style: italic;}
+.s4 { color: #0000ff;}
+.s5 { color: #008000; font-weight: bold;}
+</style>
+</head>
+<body bgcolor="#ffffff">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#c0c0c0" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+GroupMessengerActivity.java</font>
+</center></td></tr></table>
+<pre><span class="s0">package </span>edu.buffalo.cse.cse486586.groupmessenger2;
+
+<span class="s0">import </span>android.app.Activity;
+<span class="s0">import </span>android.content.ContentValues;
+<span class="s0">import </span>android.content.Context;
+<span class="s0">import </span>android.net.Uri;
+<span class="s0">import </span>android.os.AsyncTask;
+<span class="s0">import </span>android.os.Bundle;
+<span class="s0">import </span>android.telephony.TelephonyManager;
+<span class="s0">import </span>android.text.method.ScrollingMovementMethod;
+<span class="s0">import </span>android.util.Log;
+<span class="s0">import </span>android.view.Menu;
+<span class="s0">import </span>android.view.View;
+<span class="s0">import </span>android.widget.Button;
+<span class="s0">import </span>android.widget.EditText;
+<span class="s0">import </span>android.widget.TextView;
+
+<span class="s0">import </span>java.io.EOFException;
+<span class="s0">import </span>java.io.OptionalDataException;
+<span class="s0">import </span>java.io.Serializable;
+
+<span class="s0">import </span>java.io.BufferedInputStream;
+<span class="s0">import </span>java.io.DataInputStream;
+<span class="s0">import </span>java.io.DataOutputStream;
+<span class="s0">import </span>java.io.IOException;
+<span class="s0">import </span>java.io.ObjectInputStream;
+<span class="s0">import </span>java.io.ObjectOutputStream;
+<span class="s0">import </span>java.io.StreamCorruptedException;
+<span class="s0">import </span>java.lang.reflect.Array;
+<span class="s0">import </span>java.net.InetAddress;
+<span class="s0">import </span>java.net.ServerSocket;
+<span class="s0">import </span>java.net.Socket;
+<span class="s0">import </span>java.net.SocketException;
+<span class="s0">import </span>java.net.UnknownHostException;
+<span class="s0">import </span>java.util.ArrayList;
+<span class="s0">import </span>java.util.Arrays;
+<span class="s0">import </span>java.util.Comparator;
+<span class="s0">import </span>java.util.HashMap;
+<span class="s0">import </span>java.util.Iterator;
+<span class="s0">import </span>java.util.List;
+<span class="s0">import </span>java.util.Map;
+<span class="s0">import </span>java.util.PriorityQueue;
+<span class="s0">import </span>java.util.Collections;
+<span class="s0">import </span>java.util.Timer;
+<span class="s0">import </span>java.util.TimerTask;
+
+<span class="s0">import static </span>android.content.ContentValues.TAG;
+
+<span class="s2">/**</span>
+ <span class="s2">* GroupMessengerActivity is the main Activity for the assignment.</span>
+ <span class="s2">*</span>
+ <span class="s2">* </span><span class="s3">@author </span><span class="s2">stevko</span>
+ <span class="s2">*</span>
+ <span class="s2">*/</span>
+<span class="s0">public class </span>GroupMessengerActivity <span class="s0">extends </span>Activity {
+    <span class="s0">private </span>Uri providerUri;
+    <span class="s0">static  final int </span>SERVER_PORT=<span class="s4">10000</span>;
+    <span class="s0">static  double </span>a[]=<span class="s0">new double</span>[<span class="s4">5</span>];
+    <span class="s0">public  static  int </span>FailPort =<span class="s4">0</span>;
+    <span class="s0">int </span>Sfailport=<span class="s4">0</span>;
+    <span class="s0">double </span>counter=<span class="s4">0.0</span>;
+    <span class="s0">public static int </span>test =<span class="s4">0</span>;
+    <span class="s0">public static int </span>msgId=<span class="s4">0</span>;
+   <span class="s0">static double </span>proposed__counter=<span class="s4">0.0</span>;
+    <span class="s0">static double </span>final_counter=<span class="s4">0.0</span>;
+    <span class="s0">static double </span>Final_counter=<span class="s4">0.0</span>;
+
+
+    PriorityQueue&lt;App_message&gt;Pqueue=<span class="s0">new </span>PriorityQueue&lt;App_message&gt;(<span class="s4">25</span>,<span class="s0">new </span>OObject_comparator());
+    PriorityQueue&lt;App_message&gt;Pqueue1=<span class="s0">new </span>PriorityQueue&lt;App_message&gt;(<span class="s4">25</span>,<span class="s0">new </span>OObject_comparator());
+    String [] REMOTE_PORT ={<span class="s5">&quot;11108&quot;</span>,<span class="s5">&quot;11112&quot;</span>,<span class="s5">&quot;11116&quot;</span>,<span class="s5">&quot;11120&quot;</span>,<span class="s5">&quot;11124&quot;</span>};
+
+    ArrayList&lt;Double&gt;FinalGCounter=<span class="s0">new </span>ArrayList&lt;Double&gt;();
+    ArrayList&lt;Double&gt;FinalServerNo=<span class="s0">new </span>ArrayList&lt;Double&gt;();
+
+
+    @Override
+    <span class="s0">protected void </span>onCreate(Bundle savedInstanceState) {
+        <span class="s0">super</span>.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_group_messenger);
+
+        <span class="s2">/* 
+         * TODO: Use the TextView to display your messages. Though there is no grading component 
+         * on how you display the messages, if you implement it, it'll make your debugging easier. 
+         */</span>
+        TextView tv = (TextView) findViewById(R.id.textView1);
+        tv.setMovementMethod(<span class="s0">new </span>ScrollingMovementMethod());
+
+        <span class="s2">/* 
+         * Registers OnPTestClickListener for &quot;button1&quot; in the layout, which is the &quot;PTest&quot; button. 
+         * OnPTestClickListener demonstrates how to access a ContentProvider. 
+         */</span>
+        findViewById(R.id.button1).setOnClickListener(
+                <span class="s0">new </span>OnPTestClickListener(tv, getContentResolver()));
+
+        <span class="s2">/* 
+         * TODO: You need to register and implement an OnClickListener for the &quot;Send&quot; button. 
+         * In your implementation you need to get the message from the input box (EditText) 
+         * and send it to other AVDs. 
+         */</span>
+
+
+        TelephonyManager tel = (TelephonyManager) <span class="s0">this</span>.getSystemService(Context.TELEPHONY_SERVICE);
+        String portStr = tel.getLine1Number().substring(tel.getLine1Number().length() - <span class="s4">4</span>);
+        <span class="s0">final </span>String myPort = String.valueOf((Integer.parseInt(portStr) * <span class="s4">2</span>));
+
+
+        <span class="s0">try</span>{
+
+
+            ServerSocket serverSocket= <span class="s0">new </span>ServerSocket(SERVER_PORT);
+            <span class="s0">new </span>ServerTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,serverSocket);
+        } <span class="s0">catch </span>(IOException e) {
+            Log.e(TAG, <span class="s5">&quot;cannot create server &quot;</span>);
+        }
+
+
+        <span class="s0">final </span>EditText editText= (EditText) findViewById(R.id.editText1);
+        Button button=(Button)findViewById(R.id.button4);
+
+        button.setOnClickListener(<span class="s0">new </span>View.OnClickListener() {
+            @Override
+            <span class="s0">public void </span>onClick(View v) {
+                String msg=editText.getText().toString();
+                msgId=msgId+<span class="s4">1</span>;
+
+                editText.setText(<span class="s5">&quot;&quot;</span>);
+                TextView textView= (TextView)findViewById(R.id.textView1);
+
+
+                <span class="s0">new </span>ClientTask().executeOnExecutor(AsyncTask.SERIAL_EXECUTOR,msg,myPort);
+
+            }
+        });
+    }
+
+    <span class="s0">int </span>count=<span class="s4">0</span>;
+    <span class="s0">private class </span>ServerTask <span class="s0">extends </span>AsyncTask&lt;ServerSocket, String, Void&gt; {
+        @Override
+        <span class="s0">protected </span>Void doInBackground(ServerSocket... serverSockets) {
+            <span class="s0">int </span>seq=<span class="s4">0</span>;
+           <span class="s2">// Log.i(TAG, &quot;initial seq&quot;+seq);</span>
+            ServerSocket serverSocket = serverSockets[<span class="s4">0</span>];
+
+
+
+            <span class="s0">try </span>{
+
+
+                <span class="s0">while </span>(<span class="s0">true</span>) {
+
+                    Socket clientSocket = serverSocket.accept();
+                    ObjectOutputStream ds = <span class="s0">new </span>ObjectOutputStream(clientSocket.getOutputStream());
+                    ObjectInputStream ir = <span class="s0">new </span>ObjectInputStream(<span class="s0">new </span>BufferedInputStream(clientSocket.getInputStream()));
+
+
+                    App_message server_message;
+                    server_message = (App_message) ir.readObject();
+                    Sfailport=server_message.getFailport();
+                    Log.i(TAG, <span class="s5">&quot;Failport in server&quot;</span>+Sfailport);    <span class="s2">// checks for failed ports</span>
+
+                    <span class="s0">if </span>(server_message.getFinal_counter() == <span class="s4">0.0</span>)
+                    {                                                   <span class="s2">//To get the Proposed counter</span>
+
+                        server_message.setSeq(seq);
+                         seq = seq + <span class="s4">1</span>;
+
+                        <span class="s0">if </span>(proposed__counter &lt;= final_counter) {
+                            proposed__counter = (<span class="s0">int</span>) final_counter + server_message.getServer_number() + <span class="s4">1</span>;
+
+                        } <span class="s0">else </span>{
+                            proposed__counter = (<span class="s0">int</span>) proposed__counter + server_message.getServer_number() + <span class="s4">1</span>;
+
+                        }
+
+                        server_message.setCounter(proposed__counter);
+
+                        <span class="s0">if </span>(server_message.getPortnumber() != Sfailport)
+                        {
+                            Pqueue.add(server_message);
+                            <span class="s0">synchronized </span>(Pqueue)
+                            {
+                                <span class="s0">for </span>(App_message p : Pqueue)
+                                {
+                                     Log.i(TAG, <span class="s5">&quot;Pqueue proposed terms added&quot; </span>+p.getCounter());
+                                }
+                             }
+                             server_message.setAcknowledge(<span class="s5">&quot;true&quot;</span>);                            <span class="s2">//server sends and acknowledgement  with the proposed counter</span>
+                             ds.writeObject(server_message);
+                             ds.flush();
+
+
+                         }
+
+                        clientSocket.close();
+
+                    }
+
+                    <span class="s0">else if </span>(server_message.getFinal_counter() != <span class="s4">0.0</span>)
+                    {   <span class="s2">//App_message Final_message;</span>
+                        final_counter = server_message.getFinal_counter();
+
+                        <span class="s0">synchronized </span>(Pqueue)
+                        {
+                            <span class="s0">for </span>(App_message p : Pqueue)
+                            {
+                                Log.i(TAG, <span class="s5">&quot;Pqueue counterlist&quot;</span>+p.getCounter());                     <span class="s2">// printing the Pqueue(Initial) counter</span>
+                            }
+                        }
+
+                        <span class="s0">synchronized </span>(Pqueue1)
+                        {
+                            <span class="s0">for </span>(App_message p : Pqueue1)
+                            {
+                                Log.i(TAG, <span class="s5">&quot;Pqueue1 counterlist&quot;</span>+p.getCounter());
+                            }
+                        }
+
+
+                        <span class="s0">synchronized </span>(Pqueue)
+                        {
+                            <span class="s0">for </span>(App_message p : Pqueue)
+
+                            {
+                                <span class="s0">if </span>(p.getPortnumber() != Sfailport)                                    <span class="s2">//elements in the initial queue that dont have the port number equal to the failport are added to the final queue along with its final counter</span>
+                                {
+                                    <span class="s0">if </span>(p.getCounter() == server_message.getCounter())
+                                    {
+                                        Log.i(TAG, <span class="s5">&quot;inside remove add&quot;</span>);
+                                        Pqueue.remove(p);                                              <span class="s2">//remove from initial queue and add to the final queue.</span>
+                                        p.setCounter(server_message.getFinal_counter());
+                                        p.setDeliverable(<span class="s0">true</span>);
+                                        Pqueue1.add(p);
+                                    }
+                                }
+
+
+
+                            }
+                        }
+
+
+
+
+
+                            <span class="s2">//Log.i(TAG, &quot;final queue is&quot;+Pqueue.peek().getCounter());</span>
+                        Log.i(TAG, <span class="s5">&quot;Pqueue1 size&quot; </span>+ Pqueue1.size());
+                        Log.i(TAG, <span class="s5">&quot;Pqueue size&quot; </span>+ Pqueue.size());
+
+
+
+
+                        <span class="s0">synchronized </span>(Pqueue1)
+                        {
+                            <span class="s0">for </span>(App_message p : Pqueue)
+                            {
+                                Log.i(TAG, <span class="s5">&quot;Pqeue final list &quot; </span>+ p.getCounter()+<span class="s5">&quot;port number&quot;</span>+p.getPortnumber());
+                            }
+                        }
+
+
+
+
+                        server_message.setAcknowledge(<span class="s5">&quot;true&quot;</span>);                                 <span class="s2">//server sends acknowledgement the second time</span>
+
+                        ds.writeObject(server_message);
+                        ds.flush();
+
+
+                    }
+
+                    <span class="s2">// Printing the queue</span>
+
+                    <span class="s0">synchronized </span>(Pqueue)                                                       <span class="s2">//messages from the failed avd are deleted from the initial queue.</span>
+                    {
+                        <span class="s0">for </span>(App_message p : Pqueue)
+                        {
+                            <span class="s0">if</span>(p.getPortnumber()==Sfailport)
+                            {
+                                Pqueue.remove(p);
+                                Log.i(TAG, <span class="s5">&quot;Pqueue removed&quot;</span>+<span class="s5">&quot;fail port &quot;</span>+Sfailport+<span class="s5">&quot;size after remove &quot;</span>+Pqueue.size());
+                            }
+                        }
+                    }
+
+
+
+                    <span class="s2">// This is the printing logic.  if the Pqueue (initial queue) size==0  then it means all the messages have been send to the final queue and</span>
+                    <span class="s2">// are hence delivered to the avd. If the intial queue is not zero than there may be messages that may still have not found its final counter or may be a message from its failure node which is yet to be deleted.</span>
+
+
+
+                    <span class="s0">synchronized </span>(Pqueue1) {
+                        App_message first = Pqueue1.peek();
+
+                        <span class="s0">while </span>(first != <span class="s0">null </span>&amp;&amp; first.getDeliverable() == <span class="s0">true</span>)
+                        {
+                            <span class="s0">if </span>(Pqueue.size() != <span class="s4">0</span>) {
+
+                                <span class="s0">break</span>;
+                            } <span class="s0">else </span>{
+                                first = Pqueue1.poll();
+                                String msg = first.getMessage() + <span class="s5">&quot;:&quot; </span>+ first.getSeq();
+                                publishProgress(msg);
+                                first = Pqueue1.peek();
+
+                                 }
+
+                        }
+                    }
+
+
+                    clientSocket.close();
+
+                }
+
+            } <span class="s0">catch </span>(OptionalDataException ex) {
+                ex.printStackTrace();
+            } <span class="s0">catch </span>(IOException ex) {
+                ex.printStackTrace();
+
+            } <span class="s0">catch </span>(ClassNotFoundException ex) {
+                ex.printStackTrace();
+            }
+
+
+            <span class="s0">return null</span>;
+        }
+
+
+        <span class="s0">protected void </span>onProgressUpdate(String...strings) {
+
+            String [] message=strings[<span class="s4">0</span>].split(<span class="s5">&quot;:&quot;</span>);
+             String strReceived = message[<span class="s4">0</span>].trim();
+
+            Log.i(TAG, <span class="s5">&quot;message count &quot;</span>+message[<span class="s4">1</span>]);
+            TextView textView = (TextView) findViewById(R.id.textView1);
+            textView.append(strReceived +<span class="s5">&quot;</span><span class="s0">\t\n</span><span class="s5">&quot;</span>);
+
+            providerUri = buildUri(<span class="s5">&quot;content&quot;</span>, <span class="s5">&quot;edu.buffalo.cse.cse486586.groupmessenger2.provider&quot;</span>);
+            ContentValues keyValueToInsert = <span class="s0">new </span>ContentValues();
+
+
+            <span class="s2">// inserting &lt;”key-to-insert”, “value-to-insert”&gt;</span>
+            keyValueToInsert.put(<span class="s5">&quot;key&quot;</span>,Integer.toString(count));
+            <span class="s2">//keyValueToInsert.put(&quot;key&quot;,message[1]);</span>
+            keyValueToInsert.put(<span class="s5">&quot;value&quot;</span>,strReceived);
+
+            Uri newUri = getContentResolver().insert(
+                    providerUri,    <span class="s2">// assume we already created a Uri object with our provider URI using uribuilder</span>
+                    keyValueToInsert
+            );
+            count=count+<span class="s4">1</span>;
+            Log.i(TAG, <span class="s5">&quot;inserted&quot;</span>+newUri.toString());
+
+            <span class="s2">//count=count+1;</span>
+
+
+            Log.i(TAG, <span class="s5">&quot;onProgressUpdate: string recieved&quot;</span>+strReceived);
+
+        }
+
+
+        <span class="s0">private </span>Uri buildUri(String scheme, String authority) {
+            Uri.Builder uriBuilder = <span class="s0">new </span>Uri.Builder();
+            uriBuilder.authority(authority);
+            uriBuilder.scheme(scheme);
+            <span class="s0">return </span>uriBuilder.build();
+        }
+    }
+
+
+    <span class="s0">private  class </span>ClientTask <span class="s0">extends  </span>AsyncTask&lt;String,Void,Void&gt;{
+        @Override
+        <span class="s0">protected </span>Void doInBackground(String... strings) {
+
+
+            App_message app_message = <span class="s0">new </span>App_message();
+            App_message Final_message = <span class="s0">new </span>App_message();
+            test=<span class="s4">1</span>;
+
+
+            <span class="s0">try </span>{
+
+                     String msgToSend = strings[<span class="s4">0</span>];
+
+
+                     ArrayList Pcounter=<span class="s0">new </span>ArrayList();
+
+
+                    <span class="s0">for </span>(<span class="s0">int </span>i = <span class="s4">0</span>; i &lt; <span class="s4">5</span>; i++)
+                    {
+                         Socket socket = <span class="s0">new </span>Socket(InetAddress.getByAddress(<span class="s0">new byte</span>[]{<span class="s4">10</span>, <span class="s4">0</span>, <span class="s4">2</span>, <span class="s4">2</span>}), Integer.parseInt(REMOTE_PORT[i]));
+
+                         app_message.setMessage(msgToSend);
+                         app_message.setDeliverable(<span class="s0">false</span>);
+                         app_message.setMsgId(msgId);
+                         app_message.setPortnumber(Integer.parseInt(strings[<span class="s4">1</span>]));
+
+
+                         ObjectOutputStream ds = <span class="s0">new </span>ObjectOutputStream(socket.getOutputStream());
+                         String serv_no = <span class="s5">&quot;0.&quot; </span>+ i;
+
+                        app_message.setServer_number(Double.parseDouble(serv_no));
+                        ds.writeObject(app_message);
+                        ds.flush();
+
+                    <span class="s2">//read the proposed counter</span>
+                        <span class="s0">try</span>
+                        {
+
+                            ObjectInputStream ir = <span class="s0">new </span>ObjectInputStream(<span class="s0">new </span>BufferedInputStream(socket.getInputStream()));
+                            App_message new_message = (App_message) ir.readObject();
+                            FinalGCounter.add(new_message.getCounter());
+                            Final_message=new_message;
+                            Pcounter.add(new_message.getCounter());
+                        <span class="s2">//Log.i(TAG, &quot;doInBackground: &quot;+new_message.getAcknowledge()+new_message.getServer_number());</span>
+                           <span class="s0">if </span>(new_message.getAcknowledge().equals(<span class="s5">&quot;true&quot;</span>))
+                             {
+                                   socket.close();
+                                   new_message.setAcknowledge(<span class="s5">&quot;false&quot;</span>);
+                             }
+
+                        }
+
+                        <span class="s0">catch </span>(ClassNotFoundException e)
+                        {
+                            e.printStackTrace();
+                        }
+                        <span class="s0">catch </span>(OptionalDataException e)
+                        {
+                              e.printStackTrace();
+                        }
+                        <span class="s0">catch </span>(StreamCorruptedException e)
+                        {
+                              e.printStackTrace();
+                        }
+                        <span class="s0">catch </span>(IOException e)
+                        {
+
+                            FailPort=socket.getPort();
+                            Log.i(TAG, <span class="s5">&quot;Failport in client&quot;</span>+FailPort);
+                            socket.close();
+                        }
+                        <span class="s0">catch </span>(Exception e)
+                        {
+                             e.printStackTrace();
+                            FailPort=socket.getPort();
+                            Log.i(TAG, <span class="s5">&quot;Failport in client&quot;</span>+FailPort);
+                            socket.close();
+                        }
+
+                    }
+
+
+
+
+
+
+
+
+
+                    <span class="s2">//get the maximum proposed counter</span>
+                    Final_counter= (Double)Collections.max(Pcounter);
+
+
+                   <span class="s0">for </span>(<span class="s0">int </span>i = <span class="s4">0</span>; i &lt;<span class="s4">5</span>; i++)
+                   {
+                         Socket socket = <span class="s0">new </span>Socket(InetAddress.getByAddress(<span class="s0">new byte</span>[]{<span class="s4">10</span>, <span class="s4">0</span>, <span class="s4">2</span>, <span class="s4">2</span>}), Integer.parseInt(REMOTE_PORT[i]));
+                         <span class="s0">if </span>(socket.getPort() == FailPort)
+                        {
+
+                        FinalGCounter.add(i,<span class="s4">0.0</span>);
+                        socket.close();
+                        <span class="s0">continue</span>;
+                        }
+
+
+                        Final_message.setCounter(FinalGCounter.get(i));
+                        Final_message.setMsgId(msgId);
+                        Final_message.setFailport(FailPort);
+
+                         ObjectOutputStream ds = <span class="s0">new </span>ObjectOutputStream(socket.getOutputStream());
+                         Final_message.setFinal_counter(Final_counter);
+                         ds.writeObject(Final_message);
+                         ds.flush();
+
+                    <span class="s2">//recieve second acknowledgement</span>
+                        <span class="s0">try </span>{
+                           ObjectInputStream ir = <span class="s0">new </span>ObjectInputStream(<span class="s0">new </span>BufferedInputStream(socket.getInputStream()));
+                           Final_message = (App_message) ir.readObject();
+                        <span class="s2">//Log.i(TAG, &quot;new_message&quot; + &quot;server&quot; + Final_message.getServer_number() + &quot;ack&quot; + Final_message.getAcknowledge());</span>
+
+                           <span class="s0">if </span>(Final_message.getAcknowledge().equals(<span class="s5">&quot;true&quot;</span>))
+                               {
+                      <span class="s2">//      Log.i(TAG, &quot;Final_message closed&quot;);</span>
+                               socket.close();
+
+                               }
+                          }
+                        <span class="s0">catch </span>(ClassNotFoundException ex)
+                         {
+                        ex.printStackTrace();
+                         }
+                        <span class="s0">catch </span>(IOException e)
+                        {
+                          socket.close();
+
+                         }
+                        <span class="s0">catch </span>(NullPointerException e)
+                        {
+                           socket.close();
+
+                        }
+
+                   }
+                   FinalGCounter.clear();
+                   FinalServerNo.clear();
+                   Pcounter.clear();
+
+                     <span class="s2">//app_message.setServer_number(0.0);</span>
+            }
+            <span class="s0">catch </span>(UnknownHostException e)
+            {
+                e.printStackTrace();
+            }
+            <span class="s0">catch </span>(OptionalDataException e)
+            {
+                e.printStackTrace();
+            }
+            <span class="s0">catch </span>(StreamCorruptedException e)
+            {
+                e.printStackTrace();
+            }
+            <span class="s0">catch </span>(IOException e)
+            {
+                e.printStackTrace();
+
+            }
+
+
+            <span class="s2">//send the final count</span>
+
+
+
+            <span class="s0">return null</span>;
+
+
+        }
+
+
+
+
+        }
+    @Override
+    <span class="s0">public boolean </span>onCreateOptionsMenu(Menu menu) {
+        <span class="s2">// Inflate the menu; this adds items to the action bar if it is present.</span>
+        getMenuInflater().inflate(R.menu.activity_group_messenger, menu);
+        <span class="s0">return true</span>;
+    }
+}
+
+
+<span class="s0">class </span>App_message <span class="s0">implements  </span>Serializable{
+    <span class="s0">int </span>seq;
+    <span class="s0">int </span>msgId;
+    <span class="s0">double </span>counter;
+    <span class="s0">double </span>final_counter=<span class="s4">0.0</span>;
+    String message;
+    Boolean deliverable= Boolean.FALSE;
+    <span class="s0">double </span>server_number;
+    <span class="s0">int </span>portnumber;
+    String acknowledge;
+    <span class="s0">int </span>Failport=<span class="s4">0</span>;
+
+    <span class="s0">public void </span>setFailport(<span class="s0">int </span>failport) {
+        Failport = failport;
+    }
+
+    <span class="s0">public void </span>setMsgId(<span class="s0">int </span>msgId) {
+        <span class="s0">this</span>.msgId = msgId;
+
+    }
+
+
+    <span class="s0">public void </span>setPortnumber(<span class="s0">int </span>portnumber) {
+        <span class="s0">this</span>.portnumber = portnumber;
+    }
+
+    <span class="s0">public void </span>setAcknowledge(String acknowledge) {
+        <span class="s0">this</span>.acknowledge = acknowledge;
+    }
+
+    <span class="s0">public void </span>setServer_number(<span class="s0">double </span>server_number) {
+        <span class="s0">this</span>.server_number = server_number;
+    }
+
+    <span class="s0">public void </span>setFinal_counter(<span class="s0">double </span>final_counter) {
+        <span class="s0">this</span>.final_counter = final_counter;
+    }
+
+    <span class="s0">public int </span>getFailport() {
+        <span class="s0">return </span>Failport;
+    }
+
+    <span class="s0">public double </span>getServer_number() {
+        <span class="s0">return </span>server_number;
+    }
+
+    <span class="s0">public </span>String getAcknowledge() {
+        <span class="s0">return </span>acknowledge;
+    }
+
+    <span class="s0">public int </span>getMsgId() {
+        <span class="s0">return </span>msgId;
+    }
+
+    <span class="s0">public </span>Boolean getDeliverable() {
+        <span class="s0">return </span>deliverable;
+    }
+
+    <span class="s0">public int </span>getPortnumber() {
+        <span class="s0">return </span>portnumber;
+    }
+
+    <span class="s0">public int </span>getSeq() {
+        <span class="s0">return </span>seq;
+    }
+
+    <span class="s0">public void </span>setCounter(<span class="s0">double </span>counter) {
+        <span class="s0">this</span>.counter = counter;
+    }
+
+    <span class="s0">public double </span>getFinal_counter() {
+        <span class="s0">return </span>final_counter;
+    }
+
+    <span class="s0">public double </span>getCounter() {
+        <span class="s0">return </span>counter;
+    }
+    <span class="s0">public void </span>setMessage(String message){
+        <span class="s0">this</span>.message=message;
+    }
+
+    <span class="s0">public </span>String getMessage() {
+        <span class="s2">//if(counter==this.counter)</span>
+            <span class="s0">return </span>message;
+        <span class="s2">//else{</span>
+          <span class="s2">//  return null;</span>
+
+        <span class="s2">//s}</span>
+    }
+
+    <span class="s0">public void </span>setSeq(<span class="s0">int </span>seq) {
+        <span class="s0">this</span>.seq = seq;
+    }
+
+    <span class="s0">public void </span>setDeliverable(Boolean deliverable) {
+        <span class="s0">this</span>.deliverable = deliverable;
+    }
+
+   <span class="s2">/* @Override 
+    public int compareTo(App_message another) { 
+        if (this.getCounter() &gt; another.getCounter()) { 
+            return 1; 
+        } else if (this.getCounter() &lt; another.getCounter()) { 
+            return -1; 
+        } else { 
+            return 0; 
+        } 
+    }*/</span>
+}
+
+ <span class="s0">class </span>OObject_comparator <span class="s0">implements </span>Comparator&lt;App_message&gt;
+ {
+     @Override
+     <span class="s0">public int </span>compare(App_message lhs, App_message rhs) {
+         <span class="s0">if</span>(lhs.getCounter()&gt;rhs.getCounter())
+         {
+             <span class="s0">return </span><span class="s4">1</span>;
+         }
+         <span class="s0">else if</span>(lhs.getCounter()&lt;rhs.getCounter())
+         {
+             <span class="s0">return </span>-<span class="s4">1</span>;
+         }
+         <span class="s0">return </span><span class="s4">0</span>;
+     }
+ }
+</pre>
+</body>
+</html>
