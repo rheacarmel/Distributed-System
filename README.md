@@ -7,6 +7,10 @@ https://github.com/rheacarmel/Distributed-System/tree/master/GroupMessenger1/app
 
 3)Group Messenger with Total and FIFO Ordering Guarantees: 
   This project guarantees order to the group message using total orderings as well as FIFO ordering.Designed and Implemented the Total and FIFO ordering algorithms wich gurantees order in messages even with failure of an app during execution.
+ https://github.com/rheacarmel/Distributed-System/tree/master/GroupMessenger2/app/src/main/java/edu/buffalo/cse/cse486586/groupmessenger2 
   
+4) Simple Distributed Hash Table :
+Designed a simple DHT based chord protocol  with ID space partitioning /re-partitioning, Ring based routing and node joins.
 
+   
 Simple Dynamo: https://github.com/rheacarmel/Distributed-System/tree/master/SimpleDynamo/app/src/main/java/edu/buffalo/cse/cse486586/simpledynamo
