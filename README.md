@@ -14,4 +14,7 @@ https://github.com/rheacarmel/Distributed-System/tree/master/GroupMessenger1/app
    https://github.com/rheacarmel/Distributed-System/tree/master/SimpleDht/app/src/main/java/edu/buffalo/cse/cse486586/simpledht
 
    
-Simple Dynamo: https://github.com/rheacarmel/Distributed-System/tree/master/SimpleDynamo/app/src/main/java/edu/buffalo/cse/cse486586/simpledynamo
+5) Simple Dynamo: 
+   Implemented simplified version of Dynamo. Implemented Partitioning, Replication and Failure Handling with a goal to provide availabaility and linearizability at the same time.
+ For linearizability Quorum replication was implemented.
+https://github.com/rheacarmel/Distributed-System/tree/master/SimpleDynamo/app/src/main/java/edu/buffalo/cse/cse486586/simpledynamo
